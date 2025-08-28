@@ -2,6 +2,7 @@ package com.bytebitx.wanandroid.main
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
@@ -291,7 +292,27 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), NavigationView.OnNavig
             }
             R.id.nav_logout -> {
                 if (AppUtil.isLogin) {
-                    mainViewModel.logOut(loginOutService)
+                    if (::loginOutService.isInitialized) { // Check if initialized
+                        Log.d("MainActivity", "LoginOutService is initialized, proceeding with logout")
+                        mainViewModel.logOut(loginOutService)
+                    } else {
+                        // Log an error to help diagnose the ARouter issue
+                        Log.e("MainActivity", "LoginOutService is not initialized. Check ARouter configuration for service path: ${RouterPath.LoginRegister.SERVICE_LOGOUT}")
+                        // Try to re-inject and check again
+                        try {
+                            ARouter.getInstance().inject(this)
+                            if (::loginOutService.isInitialized) {
+                                Log.d("MainActivity", "LoginOutService initialized after re-injection")
+                                mainViewModel.logOut(loginOutService)
+                            } else {
+                                Log.e("MainActivity", "LoginOutService still not initialized after re-injection")
+                                showToast("Logout service is currently unavailable. Please try again later.")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Error during ARouter injection: ${e.message}")
+                            showToast("Logout service is currently unavailable. Please try again later.")
+                        }
+                    }
                 } else {
                     ARouter.getInstance().build(RouterPath.LoginRegister.PAGE_LOGIN).navigation()
                     binding.drawerLayout.closeDrawers()

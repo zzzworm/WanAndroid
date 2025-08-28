@@ -21,8 +21,8 @@ class MainViewModel : ViewModel() {
     fun logOut(loginOutService: LoginOutService) {
         viewModelScope.launch {
             loginOutService.logOut()
-                .catch {
-
+                .catch { exception ->
+                    logOutLiveData.value = Resource.Error(exception)
                 }
                 .collectLatest {
                     logOutLiveData.value = Resource.Success(it)
